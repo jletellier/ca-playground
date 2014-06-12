@@ -1,0 +1,17 @@
+{
+    "name": "ca-playground",
+    "dependencies": {
+        "cellular-automata": "jletellier/cellular-automata",
+        "langeroids": "jletellier/langeroids",
+        "underscore": ""
+    },
+    "devDependencies": {
+        "browserify": "",
+        "beefy": "",
+        "uglify-js": "1.x"
+    },
+    "scripts": {
+        "start": "beefy app/main.js:app/bundle.js",
+        "prepublish": "browserify ./app/main.js | uglifyjs -c > ./app/bundle.js"
+    }
+}
