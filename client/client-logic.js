@@ -1,6 +1,5 @@
-var langeroids = require('langeroids/lib/langeroids.js');
+var langeroids = require('langeroids');
 var _ = langeroids._;
-var Timer = require('langeroids/lib/timer.js');
 
 var defaults = {
     zoom: 20,
@@ -9,20 +8,19 @@ var defaults = {
     selectedState: 1,
     borderColor: 'rgba(23, 84, 187, 0.3)',
     fillColors: null,
-
-    grid: null,
-    gridLogic: null
+    grid: null
 };
 
-var ClientLogic = module.exports = function(options) {
+var ClientLogic = module.exports = function(settings) {
     defaults.fillColors = [ 'rgba(23, 84, 187, 0.8)' ];
 
-    _.extend(this, defaults, options);
+    _.extend(this, defaults, settings);
 };
 
 _.extend(ClientLogic.prototype, {
-    onInit: function(game) {
-        var renderer = game.getComponent('renderer');
+    onInit: function() {
+        var renderer = this.getComponent('renderer');
+        var animationLoop = this.getComponent('animation-loop');
 
         this.viewportWidth = renderer.width;
         this.viewportHeight = renderer.height;
@@ -38,14 +36,15 @@ _.extend(ClientLogic.prototype, {
         this.realOffsetX = Math.round((this.viewportWidth - this.visibleCellsX * this.cellWidth) / 2);
         this.realOffsetY = Math.round((this.viewportHeight - this.visibleCellsY * this.cellHeight) / 2);
 
-        this.gridStepTimer = new Timer({ game: game, tDuration: this.step });
+        this.gridStepTimer = animationLoop.getTimer(this.step);
 
         this.moveViewportCenter(0, 0);
     },
 
-    onLastInputPosChanged: function(lastPosX, lastPosY) {
-        var cellX = Math.floor((lastPosX - this.realOffsetX + 1) / this.cellWidth);
-        var cellY = Math.floor((lastPosY - this.realOffsetY + 1) / this.cellHeight);
+    onLastInputPosChanged: function(lastPos) {
+        var cellX = Math.floor((lastPos.x - this.realOffsetX + 1) / this.cellWidth);
+        var cellY = Math.floor((lastPos.y - this.realOffsetY + 1) / this.cellHeight);
+        console.log(cellX, cellY);
 
         var state = this.grid.getCell(cellX, cellY);
         state = state ? 0 : this.selectedState;
@@ -53,9 +52,8 @@ _.extend(ClientLogic.prototype, {
     },
 
     onUpdate: function() {
-        if (!this.pause && this.gridStepTimer.done()) {
-            this.gridLogic.tick();
-            this.gridStepTimer.repeat();
+        if (!this.pause && this.gridStepTimer.done(true)) {
+            this.grid.update();
         }
     },
 
