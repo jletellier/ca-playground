@@ -1,29 +1,34 @@
 var langeroids = require('langeroids');
 var _ = langeroids._;
 
+var PIXI = require('pixi.js');
+
 var defaults = {
     zoom: 20,
     pause: false,
     step: 2000,
     selectedState: 1,
-    borderColor: 'rgba(23, 84, 187, 0.3)',
+    borderColor: [ 0x1754bb, 0.3 ],
     fillColors: null,
     grid: null
 };
 
 var ClientLogic = module.exports = function(settings) {
-    defaults.fillColors = [ 'rgba(23, 84, 187, 0.8)' ];
+    defaults.fillColors = [ [ 0, 0 ], [ 0x1754bb, 0.8 ] ];
 
     _.extend(this, defaults, settings);
 };
 
 _.extend(ClientLogic.prototype, {
     onInit: function() {
-        var renderer = this.getComponent('renderer');
+        this.renderer = new PIXI.WebGLRenderer(600, 300);
+        document.body.appendChild(this.renderer.view);
+        this.graphics = new PIXI.Graphics();
+
         var animationLoop = this.getComponent('animation-loop');
 
-        this.viewportWidth = renderer.width;
-        this.viewportHeight = renderer.height;
+        this.viewportWidth = this.renderer.width;
+        this.viewportHeight = this.renderer.height;
 
         this.cellWidth = this.zoom;
         this.cellHeight = this.zoom;
@@ -44,29 +49,28 @@ _.extend(ClientLogic.prototype, {
     onLastInputPosChanged: function(lastPos) {
         var cellX = Math.floor((lastPos.x - this.realOffsetX + 1) / this.cellWidth);
         var cellY = Math.floor((lastPos.y - this.realOffsetY + 1) / this.cellHeight);
-        console.log(cellX, cellY);
 
         var state = this.grid.getCell(cellX, cellY);
         state = state ? 0 : this.selectedState;
         this.grid.setCell(cellX, cellY, state);
+
+        this.emit('draw', this.graphics);
     },
 
     onUpdate: function() {
         if (!this.pause && this.gridStepTimer.done(true)) {
             this.grid.update();
+            this.emit('draw', this.graphics);
         }
     },
 
-    onDraw: function(renderer) {
-        var ctx = renderer.ctx;
-        renderer.clear('rgb(0,0,0)');
+    onDraw: function(graphics) {
+        graphics.clear();
 
         if (this.zoom > 4) {
-            ctx.strokeStyle = this.borderColor;
+            graphics.lineStyle(1, this.borderColor[0], this.borderColor[1]);
         }
-
         var fillColors = this.fillColors;
-        if (fillColors.length === 1) ctx.fillStyle = fillColors[0];
 
         // draw grid
         for (var y = 0; y < this.grid.height; y++) {
@@ -75,18 +79,15 @@ _.extend(ClientLogic.prototype, {
                 var posX = x * this.cellWidth + this.realOffsetX;
                 var posY = y * this.cellHeight + this.realOffsetY;
 
-                if (this.zoom > 4) {
-                    ctx.strokeRect(posX, posY, this.cellWidth, this.cellHeight);
-                }
-
                 if (state) {
-                    if (fillColors.length > 1) {
-                        ctx.fillStyle = fillColors[state];
-                    }
-                    ctx.fillRect(posX, posY, this.cellWidth, this.cellHeight);
+                    graphics.beginFill(fillColors[state][0], fillColors[state][1]);
                 }
+                graphics.drawRect(posX, posY, this.cellWidth, this.cellHeight);
+                graphics.endFill();
             }
         }
+
+        this.renderer.render(graphics);
     },
 
     moveViewportCenter: function(absPosX, absPoxY) {

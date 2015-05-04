@@ -3,7 +3,8 @@
     "dependencies": {
         "cellular-automata": "jletellier/cellular-automata",
         "langeroids": "jletellier/langeroids",
-        "underscore": "1.7.0"
+        "lodash": "3.7.0",
+        "pixi.js": "3.0.2"
     },
     "devDependencies": {
         "grunt": "~0.4.5",
